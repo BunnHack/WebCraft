@@ -1,0 +1,1591 @@
+<html><head><base href=".">
+<style>
+  /* Kept existing styles unchanged */
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .game-title {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    width: 300px;
+    image-rendering: pixelated;
+  }
+
+  .inventory {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+    padding: 10px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 5px;
+  }
+  
+  .slot {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid #fff;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .slot.selected {
+    background: rgba(255,255,255,0.4);
+    border-color: #ff0;
+  }
+  
+  .slot.highlighted {
+    background: rgba(255, 255, 0, 0.3); /* New highlight color */
+  }
+
+  .slot::after {
+    content: attr(data-key);
+    position: absolute;
+    top: -15px;
+    left: 5px;
+    color: white;
+    font-size: 12px;
+  }
+
+  #crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 24px;
+    pointer-events: none;
+  }
+
+  .block-icon {
+    width: 40px;
+    height: 40px;
+    image-rendering: pixelated;
+  }
+
+  /* Add to existing styles */
+  .death-screen {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 0, 0, 0.2); /* Slight red tint like Minecraft */
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .death-screen h1 {
+    font-size: 100px; /* Larger text */
+    margin-bottom: 20px;
+    color: #ff0000;
+    font-family: "Minecraft", Arial, sans-serif;
+    text-shadow: 2px 2px #3f0000; /* Dark red shadow for depth */
+    animation: deathPulse 2s infinite; /* Pulsing animation */
+  }
+
+  .respawn-button {
+    background: #500500; /* Dark red background */
+    color: #ffffff;
+    border: none;
+    padding: 15px 30px;
+    font-size: 20px;
+    font-family: "Minecraft", Arial, sans-serif;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.3s;
+    border: 2px solid #2c0300;
+    text-shadow: 2px 2px #3f0000;
+  }
+
+  .respawn-button:hover {
+    background: #6d0a0a;
+  }
+
+  @keyframes deathPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  /* Add Minecraft font */
+  @font-face {
+    font-family: 'Minecraft';
+    src: url('https://cdn.glitch.global/8074fc08-5618-4d34-9c41-3884c76d34a8/MinecraftRegular-Bmg3.otf?v=1690595132098') format('opentype');
+  }
+  
+  /* Add to existing styles */
+  .wool-picker {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-radius: 5px;
+    display: none; /* Changed from flex to none by default */
+    gap: 5px;
+  }
+
+  .wool-color {
+    position: relative; /* Add this to position the number */
+    width: 30px;
+    height: 30px;
+    border: 2px solid #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .wool-color::before {
+    content: attr(data-key);
+    position: absolute;
+    top: -15px;
+    color: white;
+    font-size: 12px;
+  }
+
+  .wool-color:hover {
+    transform: scale(1.1);
+  }
+
+  .wool-color.selected {
+    border-color: #ff0;
+  }
+
+  /* New styles for wool-picker instructions */
+  .wool-picker-instructions {
+    color: white;
+    font-family: 'Minecraft', Arial, sans-serif;
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    text-shadow: 2px 2px #000;
+  }
+
+  /* Add to existing styles */
+  .inventory-menu {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 1000;
+  }
+
+  .inventory-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .inventory-menu-slot {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid #fff;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .inventory-menu-slot:hover {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: #ff0;
+  }
+
+  .inventory-menu-title {
+    color: white;
+    font-family: 'Minecraft', Arial, sans-serif;
+    text-align: center;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px #000;
+  }
+
+  /* Add these style updates */
+  .block-icon.wool-icon {
+    background: transparent !important; /* Force transparency */
+  }
+
+  /* Add to existing styles */
+  .mobile-controls {
+    display: none; /* Hidden by default, shown only on mobile */
+    position: fixed;
+    bottom: 120px;
+    left: 20px;
+    z-index: 1000;
+    touch-action: none; /* Prevent default touch behaviors */
+  }
+
+  .jump-button {
+    position: fixed;
+    bottom: 120px;
+    right: 20px;
+    width: 80px; /* Increased size */
+    height: 80px; /* Increased size */
+    background: rgba(255, 255, 255, 0.3);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 32px;
+    z-index: 1000;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .movement-pad {
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    position: relative;
+    touch-action: none;
+  }
+
+  .movement-stick {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    touch-action: none;
+  }
+
+  /* Update media query for mobile */
+  @media (max-width: 768px) {
+    .mobile-controls,
+    .jump-button {
+      display: block; /* Show mobile controls on mobile devices */
+    }
+  }
+
+  /* Add this to your existing styles */
+  .stats {
+    position: fixed;
+    top: 80px; /* Below the title image */
+    left: 20px;
+    color: white;
+    font-family: 'Minecraft', Arial, sans-serif;
+    text-shadow: 2px 2px black;
+    z-index: 100;
+    background: rgba(0,0,0,0.5);
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+</style>
+<audio id="bgMusic" loop>
+  <source src="ytmp3free.cc_c418-sweden-minecraft-volume-alpha-youtubemp3free.org.mp3" type="audio/mpeg">
+</audio>
+<script>
+// Mobile device detection
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia("(max-width: 768px)").matches;
+
+// Start background music when page loads
+window.addEventListener('load', () => {
+  const bgMusic = document.getElementById('bgMusic');
+  bgMusic.volume = 0.5; // Set volume to 50%
+  
+  // Try to play music - handle autoplay restrictions
+  const playPromise = bgMusic.play();
+  
+  if (playPromise !== undefined) {
+    playPromise.catch(error => {
+      // Auto-play was prevented
+      console.log("Autoplay prevented:", error);
+      
+      // Add click handler to start music on first interaction
+      document.addEventListener('click', () => {
+        bgMusic.play().catch(e => console.log("Playback failed:", e));
+      }, { once: true }); // Remove listener after first click
+    });
+  }
+});
+
+// Mobile controls initialization
+const mobileControls = {
+  isMoving: false,
+  touchStartPos: { x: 0, y: 0 }
+};
+
+// Wait for DOM content to be loaded before accessing elements
+document.addEventListener('DOMContentLoaded', () => {
+  const mobileControlsElement = document.querySelector('.mobile-controls');
+  const jumpButton = document.querySelector('.jump-button');
+  const movementPad = document.querySelector('.movement-pad');
+  const movementStick = document.querySelector('.movement-stick');
+
+  if (isMobile && mobileControlsElement && jumpButton && movementPad && movementStick) {
+    mobileControlsElement.style.display = 'block';
+    jumpButton.style.display = 'flex';
+    
+    // Touch controls for movement
+    movementPad.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      mobileControls.isMoving = true;
+      const touch = e.touches[0];
+      const rect = movementPad.getBoundingClientRect();
+      mobileControls.touchStartPos = {
+        x: touch.clientX - rect.left - rect.width/2,
+        y: touch.clientY - rect.top - rect.height/2
+      };
+      movementStick.style.transform = 'translate(-50%, -50%)';
+    });
+    
+    movementPad.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!mobileControls.isMoving) return;
+
+      const touch = e.touches[0];
+      const rect = movementPad.getBoundingClientRect();
+      const currentPos = {
+        x: touch.clientX - rect.left - rect.width/2,
+        y: touch.clientY - rect.top - rect.height/2
+      };
+
+      const distance = Math.sqrt(currentPos.x * currentPos.x + currentPos.y * currentPos.y);
+      const maxDistance = 50;
+
+      let moveX = currentPos.x;
+      let moveY = currentPos.y;
+      if (distance > maxDistance) {
+        moveX = (currentPos.x / distance) * maxDistance;
+        moveY = (currentPos.y / distance) * maxDistance;
+      }
+
+      movementStick.style.transform = `translate(${moveX}px, ${moveY}px)`;
+
+      // Update movement keys based on joystick position
+      keys['KeyW'] = moveY < -10;
+      keys['KeyS'] = moveY > 10;
+      keys['KeyA'] = moveX < -10;
+      keys['KeyD'] = moveX > 10;
+    });
+    
+    movementPad.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      mobileControls.isMoving = false;
+      movementStick.style.transform = 'translate(-50%, -50%)';
+      // Reset all movement keys
+      keys['KeyW'] = false;
+      keys['KeyS'] = false;
+      keys['KeyA'] = false;
+      keys['KeyD'] = false;
+    });
+    
+    // Jump button handler
+    jumpButton.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      keys['Space'] = true;
+    });
+    
+    jumpButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      keys['Space'] = false;
+    });
+  }
+
+  // Add touch camera controls
+  if (isMobile) {
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let isCameraMoving = false;
+
+    renderer.domElement.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1 && !mobileControls.isMoving) {
+        isCameraMoving = true;
+        const touch = e.touches[0];
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+      }
+    });
+
+    renderer.domElement.addEventListener('touchmove', (e) => {
+      if (isCameraMoving && e.touches.length === 1) {
+        const touch = e.touches[0];
+        const movementX = touch.clientX - lastTouchX;
+        const movementY = touch.clientY - lastTouchY;
+
+        // Update camera rotation
+        player.rotation.y -= movementX * 0.005;
+        player.rotation.x -= movementY * 0.005;
+
+        // Clamp vertical rotation
+        player.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, player.rotation.x));
+        
+        camera.rotation.copy(player.rotation);
+
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+      }
+    });
+
+    renderer.domElement.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        isCameraMoving = false;
+      }
+    });
+  }
+
+  const canvas = renderer.domElement;
+
+  // Add touch handling for block interaction
+  canvas.addEventListener('touchstart', (e) => {
+    if (isDead || inventoryOpen) return;
+    
+    // Only handle block interactions if not touching controls
+    const touch = e.touches[0];
+    const movementPadRect = document.querySelector('.movement-pad')?.getBoundingClientRect();
+    const jumpButtonRect = document.querySelector('.jump-button')?.getBoundingClientRect();
+    
+    // Check if touch is on controls
+    if (movementPadRect && jumpButtonRect) {
+      const isTouchingControls = 
+        (touch.clientX >= movementPadRect.left && touch.clientX <= movementPadRect.right &&
+         touch.clientY >= movementPadRect.top && touch.clientY <= movementPadRect.bottom) ||
+        (touch.clientX >= jumpButtonRect.left && touch.clientX <= jumpButtonRect.right &&
+         touch.clientY >= jumpButtonRect.top && touch.clientY <= jumpButtonRect.bottom);
+         
+      if (isTouchingControls) return;
+    }
+    
+    // Simulate left or right click based on touch position
+    const screenWidth = window.innerWidth;
+    const isLeftSide = touch.clientX < screenWidth / 2;
+    
+    // Create synthetic mouse event
+    const mouseEvent = new MouseEvent(isLeftSide ? 'mousedown' : 'mousedown', {
+      button: isLeftSide ? 0 : 2, // 0 for left click (break), 2 for right click (place)
+      bubbles: true,
+      cancelable: true,
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    
+    handleMouseAction(mouseEvent);
+  });
+
+  // Update handleMouseAction function to work with both mouse and touch
+  function handleMouseAction(e) {
+    // Return early if player is dead or inventory is open
+    if (isDead || inventoryOpen) return;
+    
+    // For desktop, require pointer lock
+    if (!isMobile && !document.pointerLockElement) return;
+    
+    const intersect = getIntersection();
+    if (!intersect || !intersect.object || intersect.object.userData.isSun) return;
+    
+    // Left click/touch left side to break block
+    if (e.button === 0) {
+      const key = `${Math.floor(intersect.object.position.x)},${Math.floor(intersect.object.position.y)},${Math.floor(intersect.object.position.z)}`;
+      scene.remove(intersect.object);
+      blocks.delete(key);
+      blockUpdateCount++; // Increment counter when breaking block
+    }
+    // Right click/touch right side to place block
+    else if (e.button === 2) {
+      const selectedSlot = document.querySelector('.slot.selected');
+      if (!selectedSlot) return;
+      
+      const blockType = selectedSlot.dataset.block;
+      if (!blockType || (blockType.startsWith('placeholder') && blockType !== 'tnt')) return;
+      
+      if (!intersect.face) return;
+      
+      const normal = intersect.face.normal;
+      const position = intersect.object.position.clone().add(normal);
+      
+      // Check world bounds
+      if (position.x < 0 || position.x >= WORLD_SIZE ||
+          position.y < 0 || position.y >= WORLD_HEIGHT ||
+          position.z < 0 || position.z >= WORLD_SIZE) {
+        return;
+      }
+      
+      const key = `${Math.floor(position.x)},${Math.floor(position.y)},${Math.floor(position.z)}`;
+      if (blocks.has(key)) return;
+      
+      const block = new THREE.Mesh(geometry, blockType === 'tnt' ? materials.tnt : materials[blockType]);
+      if (!block) return;
+      
+      block.position.copy(position);
+      scene.add(block);
+      blocks.set(key, block);
+      
+      // Check player collision
+      if (checkCollision(player.position)) {
+        scene.remove(block);
+        blocks.delete(key);
+        return;
+      }
+
+      // Handle TNT special case
+      if (blockType === 'tnt') {
+        activeTNT.add(block);
+        handleTNTPlacement(block);
+      }
+      blockUpdateCount++; // Increment counter when placing block
+    }
+  }
+
+  // Add helper function for TNT placement
+  function handleTNTPlacement(block) {
+    let flashCount = 0;
+    const originalMaterials = block.material;
+    
+    const flash = setInterval(() => {
+      if (!block || !block.material) {
+        clearInterval(flash);
+        return;
+      }
+      
+      flashCount++;
+      block.material = flashCount % 2 === 0 ? 
+        originalMaterials : 
+        [
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        ];
+      
+      if (flashCount >= 6) {
+        clearInterval(flash);
+        explodeTNT(block);
+      }
+    }, 500);
+  }
+});
+
+// Add these variables at the beginning of your JavaScript
+let frameCount = 0;
+let lastTime = performance.now();
+let fps = 0;
+let blockUpdateCount = 0;
+
+// Add this function to update the stats
+function updateStats() {
+  const currentTime = performance.now();
+  frameCount++;
+  
+  // Update FPS every second
+  if (currentTime - lastTime >= 1000) {
+    fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+    frameCount = 0;
+    lastTime = currentTime;
+    
+    document.getElementById('fps').textContent = fps;
+    document.getElementById('blockUpdates').textContent = blockUpdateCount;
+    blockUpdateCount = 0; // Reset block updates counter every second
+  }
+}
+
+// Remaining JavaScript code...
+// (The rest of the script remains unchanged.)
+</script>
+</head>
+<body>
+<img src="texter.png" class="game-title" alt="Hello, it's Free Classic RPG 21">
+<div class="stats">
+  <div>FPS: <span id="fps">0</span></div>
+  <div>Block Updates: <span id="blockUpdates">0</span></div>
+</div>
+<div id="crosshair">+</div>
+<div class="inventory">
+  <div class="slot selected" data-block="dirt" data-key="1">
+    <img src="dirt.png" class="block-icon" alt="Dirt Block">
+  </div>
+  <div class="slot" data-block="grass" data-key="2">
+    <img src="GrassBlockOld.png" class="block-icon" alt="Grass Block">
+  </div>
+  <div class="slot" data-block="stone" data-key="3">
+    <img src="cobbleblocknew.png" class="block-icon" alt="Stone Block">
+  </div>
+  <div class="slot" data-block="planks" data-key="4">
+    <img src="oak planks.png" class="block-icon" alt="Oak Planks Block">
+  </div>
+  <div class="slot" data-block="glass" data-key="5">
+    <img src="glass.png" class="block-icon" alt="Glass Block">
+  </div>
+  <div class="slot" data-block="stone2" data-key="6">
+    <img src="stoneblock.png" class="block-icon" alt="Stone Block">
+  </div>
+  <div class="slot" data-block="bricks" data-key="7">
+    <img src="BrickBlock.png" class="block-icon" alt="Brick Block">
+  </div>
+  <div class="slot" data-block="tnt" data-key="8">
+    <img src="TNTBlock.png" class="block-icon" alt="TNT Block">
+  </div>
+  <div class="slot" data-block="wool" data-key="9">
+    <img src="White_Wool_JE2_BE2.png" class="block-icon wool-icon" alt="Wool Block" style="background-color: #ffffff;">
+  </div>
+</div>
+
+<div class="wool-picker" style="display: none;">
+  <div class="wool-picker-instructions">Press 0 To Close Menu</div>
+  <div class="wool-color" data-color="#ffffff" data-key="1" style="background: #ffffff"></div>
+  <div class="wool-color" data-color="#ff0000" data-key="2" style="background: #ff0000"></div>
+  <div class="wool-color" data-color="#00ff00" data-key="3" style="background: #00ff00"></div>
+  <div class="wool-color" data-color="#0000ff" data-key="4" style="background: #0000ff"></div>
+  <div class="wool-color" data-color="#ffff00" data-key="5" style="background: #ffff00"></div>
+  <div class="wool-color" data-color="#ff00ff" data-key="6" style="background: #ff00ff"></div>
+  <div class="wool-color" data-color="#00ffff" data-key="7" style="background: #00ffff"></div>
+  <div class="wool-color selected" data-color="#ffffff" data-key="8" style="background: #ffffff"></div>
+</div>
+
+<div class="death-screen">
+  <h1>You died!</h1>
+  <button class="respawn-button">⟲ Respawn</button>
+</div>
+
+<div class="inventory-menu">
+  <h2 class="inventory-menu-title">Inventory (Press E to close)</h2>
+  <div class="inventory-menu-grid">
+    <div class="inventory-menu-slot" data-block="dirt">
+      <img src="dirt.png" class="block-icon" alt="Dirt Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="grass">
+      <img src="GrassBlockOld.png" class="block-icon" alt="Grass Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="stone">
+      <img src="cobbleblocknew.png" class="block-icon" alt="Stone Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="planks">
+      <img src="oak planks.png" class="block-icon" alt="Oak Planks Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="glass">
+      <img src="glass.png" class="block-icon" alt="Glass Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="stone2">
+      <img src="stoneblock.png" class="block-icon" alt="Stone Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="bricks">
+      <img src="BrickBlock.png" class="block-icon" alt="Brick Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="tnt">
+      <img src="TNTBlock.png" class="block-icon" alt="TNT Block">
+    </div>
+    <div class="inventory-menu-slot" data-block="wool">
+      <img src="White_Wool_JE2_BE2.png" class="block-icon wool-icon" alt="Wool Block" style="background-color: #ffffff;">
+    </div>
+  </div>
+</div>
+
+<!-- Add after inventory div -->
+<div class="mobile-controls">
+  <div class="movement-pad">
+    <div class="movement-stick"></div>
+  </div>
+</div>
+<div class="jump-button">↑</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Game constants
+const WORLD_SIZE = 64; // Increased from 32 to 64
+const WORLD_HEIGHT = 16;
+
+// Create texture loader and load textures
+const textureLoader = new THREE.TextureLoader();
+const grassTexture = textureLoader.load('$_57.jpg');
+const stoneTexture = textureLoader.load('cob.jpg');
+const dirtTexture = textureLoader.load('dirt.jpg');
+const woodTexture = textureLoader.load('wood.png'); // Add wood texture loading
+const glassTexture = textureLoader.load('glassblock.png'); // New glass texture loading
+const stone2Texture = textureLoader.load('stonetexture.jpg'); // New stone texture loading
+const brickTexture = textureLoader.load('BricksTexture.png');
+
+// New wool texture loading
+const woolTexture = textureLoader.load('Wool.jpg');
+woolTexture.magFilter = THREE.NearestFilter;
+woolTexture.minFilter = THREE.NearestFilter;
+
+// Load textures
+const tntSideTexture = textureLoader.load('TNT.jpg');
+const tntTopTexture = textureLoader.load('8c680ce618ce17c6fe41de413dcdfb38.jpg');
+
+// Configure texture filtering
+tntSideTexture.magFilter = THREE.NearestFilter;
+tntSideTexture.minFilter = THREE.NearestFilter;
+tntTopTexture.magFilter = THREE.NearestFilter;
+tntTopTexture.minFilter = THREE.NearestFilter;
+
+// Materials
+const materials = {
+  dirt: new THREE.MeshLambertMaterial({ map: dirtTexture }),
+  grass: new THREE.MeshLambertMaterial({ map: grassTexture }),
+  stone: new THREE.MeshLambertMaterial({ map: stoneTexture }),
+  planks: new THREE.MeshLambertMaterial({ map: woodTexture }), // Use loaded wood texture
+  glass: new THREE.MeshLambertMaterial({ 
+    map: glassTexture,
+    transparent: true,
+    opacity: 0.8 // Updated opacity for glass
+  }),
+  stone2: new THREE.MeshLambertMaterial({ map: stone2Texture }), // Add new stone material
+  bricks: new THREE.MeshLambertMaterial({ map: brickTexture }), // Replace color with texture
+  tnt: [
+    new THREE.MeshLambertMaterial({ map: tntSideTexture }), // right
+    new THREE.MeshLambertMaterial({ map: tntSideTexture }), // left
+    new THREE.MeshLambertMaterial({ map: tntTopTexture }),  // top
+    new THREE.MeshLambertMaterial({ map: tntSideTexture }), // bottom
+    new THREE.MeshLambertMaterial({ map: tntSideTexture }), // front
+    new THREE.MeshLambertMaterial({ map: tntSideTexture })  // back
+  ],
+  placeholder3: new THREE.MeshLambertMaterial({ color: 0x888888 }),
+  placeholder4: new THREE.MeshLambertMaterial({ color: 0x888888 }),
+  placeholder5: new THREE.MeshLambertMaterial({ color: 0x888888 }),
+  wool: new THREE.MeshLambertMaterial({ 
+    map: woolTexture,
+    color: 0xffffff // This will tint the texture
+  })
+};
+
+// Create sun as a plane that always faces camera
+const sunSize = 8;
+const sunGeometry = new THREE.PlaneGeometry(sunSize, sunSize);
+const sunTexture = new THREE.CanvasTexture((() => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 32, 32);
+  return canvas;
+})());
+sunTexture.magFilter = THREE.NearestFilter;
+sunTexture.minFilter = THREE.NearestFilter;
+
+const sunMaterial = new THREE.MeshBasicMaterial({ 
+  map: sunTexture,
+  transparent: true,
+  side: THREE.DoubleSide
+});
+const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+sun.position.set(WORLD_SIZE + 20, 40, WORLD_SIZE/2);
+sun.userData.isSun = true; // Mark the sun so we can ignore it in raycasting
+scene.add(sun);
+
+// Modify existing sunLight position to match sun position
+const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+sunLight.position.copy(sun.position);
+scene.add(sunLight);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+
+// World generation
+const blocks = new Map();
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+
+function generateWorld() {
+  for (let x = 0; x < WORLD_SIZE; x++) {
+    for (let z = 0; z < WORLD_SIZE; z++) {
+      // Create the ground layer with grass blocks
+      const groundBlock = new THREE.Mesh(geometry, materials.grass);
+      groundBlock.position.set(x, 0, z);
+      scene.add(groundBlock);
+      blocks.set(`${x},0,${z}`, groundBlock);
+
+      // Add dirt layer beneath
+      const dirtBlock = new THREE.Mesh(geometry, materials.dirt);
+      dirtBlock.position.set(x, -1, z);
+      scene.add(dirtBlock);
+      blocks.set(`${x},-1,${z}`, dirtBlock);
+      
+      // Removed the random stone formations code
+    }
+  }
+}
+
+generateWorld();
+
+// Player controls
+const player = {
+  position: new THREE.Vector3(WORLD_SIZE/2, 2, WORLD_SIZE/2),
+  rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
+  velocity: new THREE.Vector3(),
+  onGround: false,
+  size: new THREE.Vector3(0.5, 1.8, 0.5), // Player hitbox size
+  isFlying: false,
+  flySpeed: 10
+};
+
+let isDead = false;
+const keys = {};
+let currentWoolColor = '#ffffff'; // Wool color selection handling
+const woolPicker = document.querySelector('.wool-picker');
+
+// Show/hide wool picker when wool is selected
+document.querySelectorAll('.slot').forEach(slot => {
+  slot.addEventListener('click', () => {
+    document.querySelector('.slot.selected').classList.remove('selected');
+    slot.classList.add('selected');
+    
+    // Show/hide wool picker based on selection
+    woolPicker.style.display = slot.dataset.block === 'wool' ? 'flex' : 'none';
+  });
+});
+
+// Update the wool icon initialization and color changes
+function updateWoolIconColor(color) {
+  const woolIcons = document.querySelectorAll('.wool-icon');
+  woolIcons.forEach(icon => {
+    icon.parentElement.style.backgroundColor = color;
+  });
+}
+
+// Update wool color selection event handlers
+document.addEventListener('keydown', (e) => {
+  if (isDead || inventoryOpen) return;
+  
+  // Add wool color selection with number keys (1-8)
+  if (e.code.startsWith('Digit')) {
+    const num = parseInt(e.code.replace('Digit', ''));
+    const selectedSlot = document.querySelector('.slot.selected');
+    
+    // If wool is selected and number is 0, close the wool picker
+    if (e.code === 'Digit0' && selectedSlot.dataset.block === 'wool') {
+      woolPicker.style.display = 'none';
+      return;
+    }
+    
+    // If wool is selected and number is 1-8, select wool color
+    if (selectedSlot.dataset.block === 'wool' && num >= 1 && num <= 8) {
+      const woolColors = document.querySelectorAll('.wool-color');
+      const targetColor = woolColors[num - 1];
+      if (targetColor) {
+        document.querySelector('.wool-color.selected').classList.remove('selected');
+        targetColor.classList.add('selected');
+        currentWoolColor = targetColor.dataset.color;
+        materials.wool.color.setStyle(currentWoolColor);
+        updateWoolIconColor(currentWoolColor);
+      }
+      return;
+    }
+    
+    // Handle hotbar slot selection (1-9)
+    if (num >= 1 && num <= 9) {
+      const slots = document.querySelectorAll('.slot');
+      const slot = slots[num - 1];
+      if (slot) {
+        document.querySelector('.slot.selected').classList.remove('selected');
+        slot.classList.add('selected');
+        
+        // Show/hide wool picker based on selection
+        woolPicker.style.display = slot.dataset.block === 'wool' ? 'flex' : 'none';
+      }
+    }
+  }
+  
+  // Add flight toggle
+  if (e.code === 'KeyF' && !isDead) {
+    player.isFlying = !player.isFlying;
+    if (player.isFlying) {
+      player.velocity.y = 0; // Reset vertical velocity when starting flight
+    }
+  }
+});
+
+// Modify the updatePlayer function
+function updatePlayer(delta) {
+  if (isDead) return;
+  
+  const speed = player.isFlying ? player.flySpeed : 5;
+  const direction = new THREE.Vector3();
+  
+  if (keys['KeyW']) direction.z -= 1;
+  if (keys['KeyS']) direction.z += 1;
+  if (keys['KeyA']) direction.x -= 1;
+  if (keys['KeyD']) direction.x += 1;
+  
+  // Add vertical movement when flying
+  if (player.isFlying) {
+    if (keys['Space']) direction.y += 1;
+    if (keys['ShiftLeft']) direction.y -= 1;
+  } else if (keys['Space'] && player.onGround) {
+    player.velocity.y = 8;
+    player.onGround = false;
+  }
+  
+  direction.normalize();
+  direction.applyEuler(new THREE.Euler(0, player.rotation.y, 0));
+  
+  const newPosition = player.position.clone();
+  
+  // Try movement on each axis separately
+  const tryMove = (axis) => {
+    const testPosition = newPosition.clone();
+    testPosition[axis] += player.velocity[axis] * delta;
+    if (!checkCollision(testPosition)) {
+      newPosition[axis] = testPosition[axis];
+    } else {
+      player.velocity[axis] = 0;
+    }
+  };
+
+  player.velocity.x = direction.x * speed;
+  player.velocity.z = direction.z * speed;
+  
+  if (player.isFlying) {
+    player.velocity.y = direction.y * speed;
+  } else if (!player.onGround) {
+    player.velocity.y -= 20 * delta; // Only apply gravity when not flying
+  }
+  
+  tryMove('x');
+  tryMove('y');
+  tryMove('z');
+  
+  player.position.copy(newPosition);
+  adjustPlayerPosition();
+  
+  // Ground check only when not flying
+  if (!player.isFlying) {
+    const groundCheckPosition = player.position.clone();
+    groundCheckPosition.y -= 0.1;
+    player.onGround = checkCollision(groundCheckPosition);
+    
+    if (player.onGround && player.velocity.y < 0) {
+      player.velocity.y = 0;
+    }
+  }
+  
+  // Only check for falling death when not flying
+  if (!player.isFlying && player.position.y < -10) {
+    showDeathScreen();
+    return;
+  }
+  
+  camera.position.copy(player.position);
+  camera.rotation.copy(player.rotation);
+}
+
+// Inventory menu handling
+const inventoryMenu = document.querySelector('.inventory-menu');
+let inventoryOpen = false;
+
+function openInventory() {
+  if (!isDead && document.pointerLockElement === document.body) {
+    inventoryMenu.style.display = 'block';
+    inventoryOpen = true;
+    document.exitPointerLock();
+  }
+}
+
+function closeInventory() {
+  inventoryMenu.style.display = 'none';
+  inventoryOpen = false;
+  if (!isDead) {
+    document.body.requestPointerLock();
+  }
+}
+
+// Update the E key event listener to be more robust
+document.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  
+  // Handle E key for inventory
+  if (e.code === 'KeyE') {
+    if (inventoryOpen) {
+      closeInventory();
+    } else {
+      openInventory();
+    }
+  }
+  
+  // Number key handling (1-9)
+  if (isDead || document.activeElement.tagName === 'INPUT') return;  
+  if (e.code.startsWith('Digit') && !e.code.includes('0')) {
+    const num = parseInt(e.code.replace('Digit', ''));
+    if (num >= 1 && num <= 9) {
+      const slots = document.querySelectorAll('.slot');
+      const slot = slots[num - 1];
+      if (slot) {
+        document.querySelector('.slot.selected').classList.remove('selected');
+        slot.classList.add('selected');
+        
+        // Show/hide wool picker based on selection
+        woolPicker.style.display = slot.dataset.block === 'wool' ? 'flex' : 'none';
+      }
+    }
+  }
+});
+
+// Add scroll wheel handling
+document.addEventListener('wheel', (e) => {
+  if (isDead || !document.pointerLockElement) return;
+  
+  const slots = Array.from(document.querySelectorAll('.slot'));
+  const currentIndex = slots.findIndex(slot => slot.classList.contains('selected'));
+  let newIndex;
+  
+  if (e.deltaY > 0) { // Scroll down
+    newIndex = (currentIndex + 1) % slots.length;
+  } else { // Scroll up
+    newIndex = (currentIndex - 1 + slots.length) % slots.length;
+  }
+  
+  slots[currentIndex].classList.remove('selected');
+  slots[newIndex].classList.add('selected');
+  
+  // Show/hide wool picker based on selection
+  woolPicker.style.display = slots[newIndex].dataset.block === 'wool' ? 'flex' : 'none';
+});
+
+// Also add to the pointer lock changes handler
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement) {
+    mouseDown = false;
+    // Only hide death screen if player isn't dead
+    if (!isDead) {
+      const deathScreen = document.querySelector('.death-screen');
+      deathScreen.style.display = 'none';
+    }
+    // If inventory isn't explicitly open and we're not dead, auto-close it
+    if (!inventoryOpen && !isDead) {
+      closeInventory();
+    }
+  }
+});
+
+// Add event listener for respawn button
+document.querySelector('.respawn-button').addEventListener('click', () => {
+  respawn();
+});
+
+document.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+});
+
+// New function for middle click handling
+function handleMiddleClick(e) {
+  if (document.pointerLockElement === document.body && e.button === 1) { // Middle mouse button
+    const intersect = getIntersection();
+    if (!intersect || intersect.object.userData.isSun) return;
+    
+    // Get the block type from the intersection
+    const blockMaterial = intersect.object.material;
+    
+    // Find matching slot
+    const slots = document.querySelectorAll('.slot');
+    slots.forEach(slot => {
+      const block = blocks.get(`${Math.floor(intersect.object.position.x)},${Math.floor(intersect.object.position.y)},${Math.floor(intersect.object.position.z)}`);
+      if (block && block.material === materials[slot.dataset.block]) {
+        document.querySelector('.slot.selected').classList.remove('selected');
+        slot.classList.add('selected');
+      }
+    });
+  }
+}
+
+// Add event listener for middle click
+document.addEventListener('mousedown', handleMiddleClick);
+
+function showDeathScreen() {
+  const deathScreen = document.querySelector('.death-screen');
+  deathScreen.style.display = 'flex';
+  document.exitPointerLock();
+  isDead = true;
+}
+
+function respawn() {
+  const deathScreen = document.querySelector('.death-screen');
+  deathScreen.style.display = 'none';
+  player.position.set(WORLD_SIZE/2, 2, WORLD_SIZE/2);
+  player.velocity.set(0, 0, 0);
+  isDead = false;
+}
+
+// Mouse look controls 
+document.addEventListener('mousemove', (e) => {
+  if (document.pointerLockElement === document.body) {
+    const sensitivity = 0.002;
+    player.rotation.y -= e.movementX * sensitivity;
+    player.rotation.x -= e.movementY * sensitivity;
+    
+    // Clamp vertical rotation between -89 and 89 degrees to prevent over-rotation
+    player.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, player.rotation.x));
+    
+    camera.rotation.copy(player.rotation);
+  }
+});
+
+// Collision detection
+function checkCollision(position) {
+  const playerMin = new THREE.Vector3(
+    position.x - player.size.x/2,
+    position.y - player.size.y/2,
+    position.z - player.size.z/2
+  );
+  const playerMax = new THREE.Vector3(
+    position.x + player.size.x/2,
+    position.y + player.size.y/2,
+    position.z + player.size.z/2
+  );
+
+  // Check surrounding blocks
+  for (let x = Math.floor(playerMin.x); x <= Math.ceil(playerMax.x); x++) {
+    for (let y = Math.floor(playerMin.y); y <= Math.ceil(playerMax.y); y++) {
+      for (let z = Math.floor(playerMin.z); z <= Math.ceil(playerMax.z); z++) {
+        const key = `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
+        const block = blocks.get(key);
+        if (block) {
+          const blockMin = new THREE.Vector3(x - 0.5, y - 0.5, z - 0.5);
+          const blockMax = new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5);
+
+          if (playerMin.x <= blockMax.x && playerMax.x >= blockMin.x &&
+              playerMin.y <= blockMax.y && playerMax.y >= blockMin.y &&
+              playerMin.z <= blockMax.z && playerMax.z >= blockMin.z) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function adjustPlayerPosition() {
+    const originalPosition = player.position.clone();
+    
+    // If player is inside a block
+    if (checkCollision(player.position)) {
+        // Try moving up first
+        for (let y = 0.1; y <= 2; y += 0.1) {
+            const upPosition = originalPosition.clone();
+            upPosition.y += y;
+            if (!checkCollision(upPosition)) {
+                player.position.copy(upPosition);
+                player.velocity.y = 0;
+                return true;
+            }
+        }
+        
+        // If can't move up, try pushing in all horizontal directions
+        const pushDirections = [
+            new THREE.Vector3(0.1, 0, 0),
+            new THREE.Vector3(-0.1, 0, 0),
+            new THREE.Vector3(0, 0, 0.1),
+            new THREE.Vector3(0, 0, -0.1)
+        ];
+        
+        for (const pushDir of pushDirections) {
+            const testPosition = originalPosition.clone().add(pushDir);
+            if (!checkCollision(testPosition)) {
+                player.position.copy(testPosition);
+                return true;
+            }
+        }
+        
+        // If still stuck, try diagonal pushes
+        const diagonalPushes = [
+            new THREE.Vector3(0.1, 0, 0.1),
+            new THREE.Vector3(-0.1, 0, 0.1),
+            new THREE.Vector3(0.1, 0, -0.1),
+            new THREE.Vector3(-0.1, 0, -0.1)
+        ];
+        
+        for (const pushDir of diagonalPushes) {
+            const testPosition = originalPosition.clone().add(pushDir);
+            if (!checkCollision(testPosition)) {
+                player.position.copy(testPosition);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Block interaction
+const raycaster = new THREE.Raycaster();
+let mouseDown = false;
+const activeTNT = new Set(); // Added for TNT management
+
+document.addEventListener('mousedown', (e) => {
+  if (document.pointerLockElement === document.body) {
+    mouseDown = true;
+    handleMouseAction(e);
+  } else {
+    // Only request pointer lock if we're not already locked and not on death screen
+    if (!isDead) {
+      document.body.requestPointerLock().catch(err => {
+        console.log("Pointer lock request failed:", err);
+      });
+    }
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  mouseDown = false;
+});
+
+// Add this function to check if player is within explosion radius
+function isPlayerInExplosionRange(explosionPos, radius) {
+  const distance = player.position.distanceTo(explosionPos);
+  return distance <= radius;
+}
+
+// Modify the explodeTNT function to check for player damage
+function explodeTNT(tntBlock) {
+  const explosionRadius = 3;
+  const tntPos = tntBlock.position;
+  
+  // Check if player is caught in explosion and show death screen
+  if (isPlayerInExplosionRange(tntPos, explosionRadius)) {
+    showDeathScreen();
+    return;
+  }
+  
+  // Remove TNT block immediately - ensure this happens first
+  const tntKey = `${Math.floor(tntPos.x)},${Math.floor(tntPos.y)},${Math.floor(tntPos.z)}`;
+  scene.remove(tntBlock);
+  blocks.delete(tntKey);
+  activeTNT.delete(tntBlock);
+
+  // Explosion effect and block destruction
+  for (let x = -explosionRadius; x <= explosionRadius; x++) {
+    for (let y = -explosionRadius; y <= explosionRadius; y++) {
+      for (let z = -explosionRadius; z <= explosionRadius; z++) {
+        const checkPos = new THREE.Vector3(
+          Math.floor(tntPos.x + x),
+          Math.floor(tntPos.y + y),
+          Math.floor(tntPos.z + z)
+        );
+        
+        const distance = checkPos.distanceTo(tntPos);
+        
+        if (distance <= explosionRadius) {
+          const key = `${checkPos.x},${checkPos.y},${checkPos.z}`;
+          const blockToRemove = blocks.get(key);
+          
+          if (blockToRemove) {
+            scene.remove(blockToRemove);
+            blocks.delete(key);
+          }
+        }
+      }
+    }
+  }
+  
+  createExplosionEffect(tntPos);
+}
+
+function getIntersection() {
+  if (!camera) return null; // Add null check for camera
+  
+  raycaster.setFromCamera(new THREE.Vector2(), camera);
+  const intersects = raycaster.intersectObjects(scene.children);
+  return intersects.length > 0 ? intersects[0] : null;
+}
+
+function handleMouseAction(e) {
+  // Return early if pointer is not locked or player is dead
+  if (!document.pointerLockElement || isDead) return;
+  
+  const intersect = getIntersection();
+  if (!intersect || !intersect.object || intersect.object.userData.isSun) return;
+  
+  // Left click to break block
+  if (e.button === 0) {
+    const key = `${Math.floor(intersect.object.position.x)},${Math.floor(intersect.object.position.y)},${Math.floor(intersect.object.position.z)}`;
+    scene.remove(intersect.object);
+    blocks.delete(key);
+    blockUpdateCount++; // Increment counter when breaking block
+  }
+  // Right click to place block
+  else if (e.button === 2) {
+    const selectedSlot = document.querySelector('.slot.selected');
+    if (!selectedSlot) return; // Add null check
+    
+    const blockType = selectedSlot.dataset.block;
+    if (!blockType) return; // Add null check
+    
+    // Don't place if it's a placeholder block (except TNT)
+    if (blockType.startsWith('placeholder') && blockType !== 'tnt') return;
+    
+    // Add null check for face
+    if (!intersect.face) return;
+    
+    const normal = intersect.face.normal;
+    const position = intersect.object.position.clone().add(normal);
+    
+    // Check if position is within world bounds
+    if (position.x < 0 || position.x >= WORLD_SIZE ||
+        position.y < 0 || position.y >= WORLD_HEIGHT ||
+        position.z < 0 || position.z >= WORLD_SIZE) {
+      return;
+    }
+    
+    // Check if there's already a block at this position
+    const key = `${Math.floor(position.x)},${Math.floor(position.y)},${Math.floor(position.z)}`;
+    if (blocks.has(key)) return;
+    
+    const block = new THREE.Mesh(geometry, materials[blockType]);
+    if (!block) return; // Add null check
+    
+    block.position.copy(position);
+    scene.add(block);
+    blocks.set(key, block);
+    
+    // Check if placing block would intersect with player
+    if (checkCollision(player.position)) {
+      scene.remove(block);
+      blocks.delete(key);
+      return;
+    }
+
+    // Handle TNT placement
+    if (blockType === 'tnt') {
+      const block = new THREE.Mesh(geometry, Array.isArray(materials[blockType]) ? materials[blockType] : materials[blockType]);
+      if (!block) return;
+      
+      block.position.copy(position);
+      scene.add(block);
+      blocks.set(key, block);
+
+      // Add flash effect
+      activeTNT.add(block);
+      let flashCount = 0;
+      const originalMaterials = block.material;
+      
+      const flash = setInterval(() => {
+        if (!block || !block.material) {
+          clearInterval(flash);
+          return;
+        }
+        
+        flashCount++;
+        block.material = flashCount % 2 === 0 ? 
+          originalMaterials : 
+          [
+            new THREE.MeshBasicMaterial({ color: 0xffffff }),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+          ];
+        
+        if (flashCount >= 6) {
+          clearInterval(flash);
+          explodeTNT(block);
+        }
+      }, 500);
+    }
+  }
+}
+
+// Add these new functions for TNT mechanics
+function createExplosionEffect(position) {
+  const particleCount = 50;
+  const geometry = new THREE.BufferGeometry();
+  const vertices = [];
+  
+  for (let i = 0; i < particleCount; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI * 2;
+    const r = Math.random() * 2;
+    
+    vertices.push(
+      position.x + r * Math.sin(theta) * Math.cos(phi),
+      position.y + r * Math.sin(theta) * Math.sin(phi),
+      position.z + r * Math.cos(theta)
+    );
+  }
+  
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  const material = new THREE.PointsMaterial({
+    color: 0xff5500,
+    size: 0.2,
+  });
+  
+  const particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+  
+  // Remove particles after animation
+  setTimeout(() => {
+    scene.remove(particles);
+  }, 1000);
+}
+
+// Update player function
+function updatePlayer(delta) {
+  if (isDead) return; // Don't update if player is dead
+  
+  const speed = player.isFlying ? player.flySpeed : 5;
+  const direction = new THREE.Vector3();
+  
+  if (keys['KeyW']) direction.z -= 1;
+  if (keys['KeyS']) direction.z += 1;
+  if (keys['KeyA']) direction.x -= 1;
+  if (keys['KeyD']) direction.x += 1;
+  
+  // Add vertical movement when flying
+  if (player.isFlying) {
+    if (keys['Space']) direction.y += 1;
+    if (keys['ShiftLeft']) direction.y -= 1;
+  } else if (keys['Space'] && player.onGround) {
+    player.velocity.y = 8;
+    player.onGround = false;
+  }
+  
+  direction.normalize();
+  direction.applyEuler(new THREE.Euler(0, player.rotation.y, 0));
+  
+  const newPosition = player.position.clone();
+  
+  // Try movement on each axis separately
+  const tryMove = (axis) => {
+    const testPosition = newPosition.clone();
+    testPosition[axis] += player.velocity[axis] * delta;
+    if (!checkCollision(testPosition)) {
+      newPosition[axis] = testPosition[axis];
+    } else {
+      player.velocity[axis] = 0;
+    }
+  };
+
+  player.velocity.x = direction.x * speed;
+  player.velocity.z = direction.z * speed;
+  
+  if (player.isFlying) {
+    player.velocity.y = direction.y * speed;
+  } else if (!player.onGround) {
+    player.velocity.y -= 20 * delta; // Only apply gravity when not flying
+  }
+  
+  tryMove('x');
+  tryMove('y');
+  tryMove('z');
+  
+  player.position.copy(newPosition);
+  adjustPlayerPosition();
+  
+  // Ground check only when not flying
+  if (!player.isFlying) {
+    const groundCheckPosition = player.position.clone();
+    groundCheckPosition.y -= 0.1;
+    player.onGround = checkCollision(groundCheckPosition);
+    
+    if (player.onGround && player.velocity.y < 0) {
+      player.velocity.y = 0;
+    }
+  }
+  
+  // Only check for falling death when not flying
+  if (!player.isFlying && player.position.y < -10) {
+    showDeathScreen();
+    return;
+  }
+  
+  camera.position.copy(player.position);
+  camera.rotation.copy(player.rotation);
+}
+
+// Inventory selection
+document.querySelectorAll('.slot').forEach(slot => {
+  slot.addEventListener('click', () => {
+    document.querySelector('.slot.selected').classList.remove('selected');
+    slot.classList.add('selected');
+  });
+  
+  slot.addEventListener('mouseenter', () => {
+    slot.classList.add('highlighted'); // Highlight on hover
+  });
+  
+  slot.addEventListener('mouseleave', () => {
+    slot.classList.remove('highlighted'); // Remove highlight
+  });
+});
+
+// Animation loop
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  updatePlayer(delta);
+  updateStats(); // Add this line
+  
+  // Make sun always face camera
+  sun.lookAt(camera.position);
+  
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Prevent right-click menu
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Handle pointer lock changes
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement) {
+    mouseDown = false;
+    // Only hide death screen if player isn't dead
+    if (!isDead) {
+      const deathScreen = document.querySelector('.death-screen');
+      deathScreen.style.display = 'none';
+    }
+    // If inventory isn't explicitly open and we're not dead, auto-close it
+    if (!inventoryOpen && !isDead) {
+      closeInventory();
+    }
+  }
+});
+
+// Add error handling for pointer lock
+document.addEventListener('pointerlockerror', (event) => {
+  console.log("Error getting pointer lock:", event);
+});
+</script>
+</body></html>
