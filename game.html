@@ -822,19 +822,17 @@ const geometry = new THREE.BoxGeometry(1, 1, 1);
 function generateWorld() {
   for (let x = 0; x < WORLD_SIZE; x++) {
     for (let z = 0; z < WORLD_SIZE; z++) {
-      // Create the ground layer with grass blocks
+      // Create the ground layer with grass blocks at Y=-60
       const groundBlock = new THREE.Mesh(geometry, materials.grass);
-      groundBlock.position.set(x, 0, z);
+      groundBlock.position.set(x, -60, z);
       scene.add(groundBlock);
-      blocks.set(`${x},0,${z}`, groundBlock);
+      blocks.set(`${x},-60,${z}`, groundBlock);
 
       // Add dirt layer beneath
       const dirtBlock = new THREE.Mesh(geometry, materials.dirt);
-      dirtBlock.position.set(x, -1, z);
+      dirtBlock.position.set(x, -61, z);
       scene.add(dirtBlock);
-      blocks.set(`${x},-1,${z}`, dirtBlock);
-      
-      // Removed the random stone formations code
+      blocks.set(`${x},-61,${z}`, dirtBlock);
     }
   }
 }
@@ -843,7 +841,7 @@ generateWorld();
 
 // Player controls
 const player = {
-  position: new THREE.Vector3(WORLD_SIZE/2, 2, WORLD_SIZE/2),
+  position: new THREE.Vector3(WORLD_SIZE/2, -58, WORLD_SIZE/2), // Changed Y from 2 to -58 (2 blocks above ground)
   rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
   velocity: new THREE.Vector3(),
   onGround: false,
@@ -928,17 +926,37 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Modify the updatePlayer function
+// Modify the updatePlayer function to improve straight line movement
 function updatePlayer(delta) {
   if (isDead) return;
   
   const speed = player.isFlying ? player.flySpeed : 5;
   const direction = new THREE.Vector3();
   
-  if (keys['KeyW']) direction.z -= 1;
-  if (keys['KeyS']) direction.z += 1;
-  if (keys['KeyA']) direction.x -= 1;
-  if (keys['KeyD']) direction.x += 1;
+  // Calculate forward/backward direction based on camera rotation
+  if (keys['KeyW']) {
+    direction.z -= Math.cos(player.rotation.y);
+    direction.x -= Math.sin(player.rotation.y);
+  }
+  if (keys['KeyS']) {
+    direction.z += Math.cos(player.rotation.y);
+    direction.x += Math.sin(player.rotation.y);
+  }
+  
+  // Calculate left/right strafing direction (perpendicular to forward)
+  if (keys['KeyA']) {
+    direction.z -= Math.cos(player.rotation.y - Math.PI/2);
+    direction.x -= Math.sin(player.rotation.y - Math.PI/2);
+  }
+  if (keys['KeyD']) {
+    direction.z += Math.cos(player.rotation.y - Math.PI/2);
+    direction.x += Math.sin(player.rotation.y - Math.PI/2);
+  }
+  
+  // Normalize direction only if moving
+  if (direction.lengthSq() > 0) {
+    direction.normalize();
+  }
   
   // Add vertical movement when flying
   if (player.isFlying) {
@@ -948,9 +966,6 @@ function updatePlayer(delta) {
     player.velocity.y = 8;
     player.onGround = false;
   }
-  
-  direction.normalize();
-  direction.applyEuler(new THREE.Euler(0, player.rotation.y, 0));
   
   const newPosition = player.position.clone();
   
@@ -965,13 +980,14 @@ function updatePlayer(delta) {
     }
   };
 
+  // Apply movement speed
   player.velocity.x = direction.x * speed;
   player.velocity.z = direction.z * speed;
   
   if (player.isFlying) {
     player.velocity.y = direction.y * speed;
   } else if (!player.onGround) {
-    player.velocity.y -= 20 * delta; // Only apply gravity when not flying
+    player.velocity.y -= 20 * delta;
   }
   
   tryMove('x');
@@ -993,7 +1009,7 @@ function updatePlayer(delta) {
   }
   
   // Only check for falling death when not flying
-  if (!player.isFlying && player.position.y < -10) {
+  if (!player.isFlying && player.position.y < -80) { // Adjusted to 20 blocks below surface
     showDeathScreen();
     return;
   }
@@ -1133,7 +1149,7 @@ function showDeathScreen() {
 function respawn() {
   const deathScreen = document.querySelector('.death-screen');
   deathScreen.style.display = 'none';
-  player.position.set(WORLD_SIZE/2, 2, WORLD_SIZE/2);
+  player.position.set(WORLD_SIZE/2, -58, WORLD_SIZE/2); // Changed Y from 2 to -58
   player.velocity.set(0, 0, 0);
   isDead = false;
 }
@@ -1457,10 +1473,30 @@ function updatePlayer(delta) {
   const speed = player.isFlying ? player.flySpeed : 5;
   const direction = new THREE.Vector3();
   
-  if (keys['KeyW']) direction.z -= 1;
-  if (keys['KeyS']) direction.z += 1;
-  if (keys['KeyA']) direction.x -= 1;
-  if (keys['KeyD']) direction.x += 1;
+  // Calculate forward/backward direction based on camera rotation
+  if (keys['KeyW']) {
+    direction.z -= Math.cos(player.rotation.y);
+    direction.x -= Math.sin(player.rotation.y);
+  }
+  if (keys['KeyS']) {
+    direction.z += Math.cos(player.rotation.y);
+    direction.x += Math.sin(player.rotation.y);
+  }
+  
+  // Calculate left/right strafing direction (perpendicular to forward)
+  if (keys['KeyA']) {
+    direction.z -= Math.cos(player.rotation.y - Math.PI/2);
+    direction.x -= Math.sin(player.rotation.y - Math.PI/2);
+  }
+  if (keys['KeyD']) {
+    direction.z += Math.cos(player.rotation.y - Math.PI/2);
+    direction.x += Math.sin(player.rotation.y - Math.PI/2);
+  }
+  
+  // Normalize direction only if moving
+  if (direction.lengthSq() > 0) {
+    direction.normalize();
+  }
   
   // Add vertical movement when flying
   if (player.isFlying) {
@@ -1470,9 +1506,6 @@ function updatePlayer(delta) {
     player.velocity.y = 8;
     player.onGround = false;
   }
-  
-  direction.normalize();
-  direction.applyEuler(new THREE.Euler(0, player.rotation.y, 0));
   
   const newPosition = player.position.clone();
   
@@ -1487,13 +1520,14 @@ function updatePlayer(delta) {
     }
   };
 
+  // Apply movement speed
   player.velocity.x = direction.x * speed;
   player.velocity.z = direction.z * speed;
   
   if (player.isFlying) {
     player.velocity.y = direction.y * speed;
   } else if (!player.onGround) {
-    player.velocity.y -= 20 * delta; // Only apply gravity when not flying
+    player.velocity.y -= 20 * delta;
   }
   
   tryMove('x');
@@ -1515,7 +1549,7 @@ function updatePlayer(delta) {
   }
   
   // Only check for falling death when not flying
-  if (!player.isFlying && player.position.y < -10) {
+  if (!player.isFlying && player.position.y < -80) { // Adjusted to 20 blocks below surface
     showDeathScreen();
     return;
   }
